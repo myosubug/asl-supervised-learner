@@ -1,6 +1,20 @@
 import tkinter as tk
 import cv2
 from PIL import Image, ImageTk
+import re
+import sys
+import glob
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy import asarray
+from skimage.transform import resize
+from sklearn.model_selection import KFold, cross_val_score,train_test_split
+from tensorflow import keras
+from keras.models import Sequential
+from keras.models import load_model
+
+
 
 class Page(tk.Frame):
     def __init__(self, *args, **kwargs):
@@ -24,11 +38,23 @@ class Page1(Page):
     
     def snapshot(self):
         check,frame = self.vid.getFrame()
+        resized = []
+        prediction = []
         if check:
             # image = "IMG-"+ time.strftime("%H-%M-%S-%d-%m") + ".png"
-            image = "image.png"
+            image = "image.jpeg"
             cv2.imwrite(image, cv2.cvtColor(frame, cv2.COLOR_BGRA2RGB))
-            msg = tk.Label(self, text='image saved', bg= 'black', fg='green').place(x=430,y=510)
+            msg = tk.Label(self, text='Image saved', bg= 'black', fg='green').place(x=430,y=510)
+            loaded_model = load_model('model.h5')
+            print(loaded_model.summary())
+            for img in glob.glob("*.jpeg"):
+                opened = Image.open(img)
+                into_array = asarray(opened)
+                resized.append(resize(into_array, (100, 100, 3)))
+                #prediction = loaded_model.predict_classes(np.array(resized))
+                print(resized)
+                
+                
 
     def update(self):
         isTrue, frame = self.vid.getFrame()
@@ -96,12 +122,12 @@ class MainView(tk.Frame):
         p2.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
         p3.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
 
-        b1 = tk.Button(buttonframe, text="Page 1", command=p1.lift)
-        b2 = tk.Button(buttonframe, text="Page 2", command=p2.lift)
-        b3 = tk.Button(buttonframe, text="Page 3", command=p3.lift)
+        b2 = tk.Button(buttonframe, text="Home", command=p2.lift)        
+        b1 = tk.Button(buttonframe, text="Detect", command=p1.lift)    
+        b3 = tk.Button(buttonframe, text="Practice", command=p3.lift)
 
+        b2.pack(side="left")        
         b1.pack(side="left")
-        b2.pack(side="left")
         b3.pack(side="left")
 
         p1.show()
