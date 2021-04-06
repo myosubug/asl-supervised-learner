@@ -15,6 +15,8 @@ from keras.models import Sequential
 from keras.models import load_model
 
 
+loaded_model = load_model('model_500.h5')
+
 
 class Page(tk.Frame):
     def __init__(self, *args, **kwargs):
@@ -41,18 +43,20 @@ class Page1(Page):
         resized = []
         prediction = []
         if check:
-            # image = "IMG-"+ time.strftime("%H-%M-%S-%d-%m") + ".png"
-            image = "image.jpeg"
+            image = "image.jpg"
             cv2.imwrite(image, cv2.cvtColor(frame, cv2.COLOR_BGRA2RGB))
             msg = tk.Label(self, text='Image saved', bg= 'black', fg='green').place(x=430,y=510)
-            loaded_model = load_model('model.h5')
+            
             print(loaded_model.summary())
-            for img in glob.glob("*.jpeg"):
+            for img in glob.glob("*.jpg"):
                 opened = Image.open(img)
                 into_array = asarray(opened)
-                resized.append(resize(into_array, (100, 100, 3)))
-                #prediction = loaded_model.predict_classes(np.array(resized))
+                resized.append(resize(into_array, (64, 64, 3)))
+                plt.show()
+                plt.matshow(resized[0])
+                prediction = loaded_model.predict_classes(np.array(resized))
                 print(resized)
+                print(prediction)
                 
                 
 
@@ -73,7 +77,7 @@ class MyVideoCapture:
         if not self.vid.isOpened():
             raise ValueError("Unable to access camera")
             
-        self.vid.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.vid.set(cv2.CAP_PROP_FRAME_WIDTH, 480)
         self.vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
     def getFrame(self):
@@ -89,7 +93,7 @@ class MyVideoCapture:
     
     def __delattr__(self):
         if self.vid.isOpened():
-            sefd.vid.release()
+            self.vid.release()
             
 
 class Page2(Page):
