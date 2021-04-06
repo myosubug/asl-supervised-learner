@@ -20,7 +20,10 @@ from tensorflow import keras
 from keras.layers import Input
 from keras.models import Sequential
 from keras.layers import Dense
+from keras.layers import Dropout
 from keras.layers import MaxPooling2D
+from keras.layers import MaxPool2D
+from keras.layers import BatchNormalization
 from keras.layers import Flatten
 from keras.layers import Conv2D
 from keras.utils import to_categorical
@@ -39,38 +42,38 @@ def loadData():
     # for importing testing data
     for img in glob.glob("data/asl_alphabet_test/*.jpg"):
         opened = Image.open(img)
-        into_array = asarray(opened)
-        resized = resize(into_array, (100, 100, 3))
+        into_array = asarray(opened, dtype=np.float32)
+        resized = resize(into_array, (64, 64, 3))
         X_test.append(resized)
         img_name = os.path.basename(img)
         if "del" in img_name:
-            y_test.append(0)
+            y_test.append(26)
         elif "nothing" in img_name:
-            y_test.append(1)
+            y_test.append(27)
         elif "space" in img_name:
-            y_test.append(2)
+            y_test.append(28)
         else:
-            y_test.append(ord(img_name[0])-94)
+            y_test.append(ord(img_name[0])-65)
 
     print("loading train data set")
     # for importing training data
     counter = 0
     for img in glob.glob("data/asl_alphabet_train/**/*.jpg", recursive=True):
         opened = Image.open(img)
-        into_array = asarray(opened)
-        resized = resize(into_array, (100, 100, 3))
+        into_array = asarray(opened, dtype=np.float32)
+        resized = resize(into_array, (64, 64, 3))
         X_train.append(resized)
         img_name = os.path.basename(img)
         # can remove del
         if "del" in img_name:
-            y_train.append(0)
+            y_train.append(26)
         elif "nothing" in img_name:
-            y_train.append(1)
+            y_train.append(27)
         # can remove space
         elif "space" in img_name:
             y_train.append(2)
         else:
-            y_train.append(ord(img_name[0])-94)
+            y_train.append(ord(img_name[0])-65)
         counter += 1
 
     return X_train, X_test, y_train, y_test
@@ -86,7 +89,7 @@ def loadNoBackground():
     print("Getting images ...")
     for img in glob.glob("data-nobackground/**/*.jpeg"):
         opened = Image.open(img)
-        into_array = resize(asarray(opened), (100, 100, 3))
+        into_array = resize(asarray(opened), (64, 64, 3))
         data.append(into_array)
         # Bug: Putting in 123 labels instead of 36
         img_name = os.path.basename(img).split("_")
@@ -103,8 +106,8 @@ def loadNoBackground():
     y_train = np.array(y_train)
     y_test = np.array(y_test)
 
-    X_train = X_train.reshape((X_train.shape[0], 100, 100, 3))
-    X_test = X_test.reshape((X_test.shape[0], 100, 100, 3))
+    X_train = X_train.reshape((X_train.shape[0], 64, 64, 3))
+    X_test = X_test.reshape((X_test.shape[0], 64, 64, 3))
 
     # one-hot encode labels
     y_train = to_categorical(y_train)
@@ -117,21 +120,25 @@ def trainModel(X_train, y_train):
     print("Training now ...")
 
     model = Sequential()
-    model.add(Input(shape=(100, 100, 3)))
-    model.add(Conv2D(50, (5, 5), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Conv2D(50, (3, 3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Conv2D(50, (3, 3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Conv2D(50, (3, 3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2,2)))
+    
+    model.add(Conv2D(64, kernel_size = 3, padding = 'same', activation = 'relu', input_shape = (64,64,3)))
+    model.add(Conv2D(32, kernel_size = 3, padding = 'same', strides = 2, activation = 'relu'))
+    model.add(Dropout(0.25))
+    model.add(Conv2D(32, kernel_size = 3, padding = 'same', activation = 'relu'))
+    model.add(Conv2D(64, kernel_size = 3, padding = 'same', strides = 2, activation = 'relu'))
+    model.add(Dropout(0.25))
+    model.add(Conv2D(128, kernel_size = 3, padding = 'same', activation = 'relu'))
+    model.add(Conv2D(256, kernel_size = 3, padding = 'same', strides = 2 , activation = 'relu'))
+    model.add(MaxPool2D(3))
+    model.add(BatchNormalization())
     model.add(Flatten())
-    model.add(Dense(50, activation='relu'))
-    model.add(Dense(26, activation='softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.add(Dropout(0.25))
+    model.add(Dense(512, activation = 'relu'))
+    model.add(Dense(26, activation = 'softmax'))
+    
+    model.compile(optimizer = 'adam', loss = keras.losses.categorical_crossentropy, metrics = ["accuracy"])
 
-    results = model.fit(X_train, y_train, epochs=20, verbose=2)
+    results = model.fit(X_train, y_train, epochs=10, verbose=2)
 
     return model
 
@@ -141,10 +148,10 @@ def trainModel(X_train, y_train):
 def main():
     
     pathname = ""
-    train = True
+    train = False
 
     if len(sys.argv) == 1:
-        pathname = "model"
+        pathname = "model.h5"
         train = True
     
     if len(sys.argv) == 2:
@@ -168,13 +175,13 @@ def main():
 
     model = Sequential()
 
-    X_train, X_test, y_train, y_test = loadNoBackground()
+    X_train, X_test, y_train, y_test = loadData()
 
     if train:
         model = trainModel(X_train, y_train)
-        model.save(pathname)
+        model.save("model.h5")
     else:
-        model = keras.models.load_model(pathname)
+        model = keras.models.load_model("model.h5")
 
     print(model.summary())
 
