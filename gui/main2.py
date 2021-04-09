@@ -1,4 +1,7 @@
 '''
+This is another GUI application as proof of concept
+Our model will predict an ASL alphabet from randomly picked images from 27 classes
+
 Below are all the libraries that requires to run this GUI.
 Please make sure that you have all of these in your Anaconda Environment
 Also, especially for opencv library ("cv2"), you must have import from Spyder console by
@@ -23,7 +26,7 @@ from sklearn.model_selection import KFold, cross_val_score,train_test_split
 from sklearn.svm import SVC
 from skimage.transform import resize
 from skimage.color import rgb2grey
-
+import random
 
 
 class Page(tk.Frame):
@@ -33,70 +36,38 @@ class Page(tk.Frame):
     def show(self):
         self.lift()
         
-        
 class Page1(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
-        self.videosource = 0
+        self.img = None
+        self.randomly_picked = None
+        self.pic_list = ["A_test","B_test","C_test","D_test","E_test","F_test","G_test","H_test","I_test","J_test","K_test","L_test","M_test","N_test","O_test","P_test","Q_test","R_test","S_test","T_test","U_test","V_test","W_test","X_test","Y_test","Z_test","nothing_test"]
         self.text = tk.StringVar()
         self.text.set("ASL Webcam Image Classification")
-        self.vid = MyVideoCapture(self.videosource)
-        self.label = tk.Label(self,text="Pose your hand to camera and Click Capture button to see the result", font = 50, bg="black",fg="white").pack(side="top", fill="both", expand=True)
         self.canvas = tk.Canvas(self, width = 400, height= 400)
-        self.canvas.pack() 
-        self.btn_snapshot = tk.Button(self, text="Capture", width=30, bg="blue",activebackground = "red",command = self.snapshot)
+        self.canvas.pack()
+        self.btn_pick = tk.Button(self, text="Pick", width=30, bg="blue",activebackground = "red",command = self.pick)
+        self.btn_predcit = tk.Button(self, text="Predict", width=30, bg="blue",activebackground = "red",command = self.predict)
         self.result = tk.Label(self, textvariable=self.text, font = 45, bg="black",fg="white").pack(side="bottom", fill="both", expand=True)
-        self.btn_snapshot.pack(anchor="center", expand=True)
-        self.update()
+        self.btn_pick.pack(anchor="center", expand=True)
+        self.btn_predcit.pack(anchor="center", expand=True)
+        self.update()  
     
-    def snapshot(self):
-        check,frame = self.vid.getFrame()
-        resize = cv2.resize(frame, (360, 240))
+    def predict(self):
         snapped = []
         prediction = []
-        if check:
-            image = "image.jpeg"
-            cv2.imwrite(image, cv2.cvtColor(resize, cv2.COLOR_BGRA2RGB))
-            self.text.set("The image has been saved!, The prediction is...")
-        else:
-            self.text.set("Failed to take capture, please try again.")
-                
+        self.text.set("The prediction is.....")
 
-    def update(self):
-        isTrue, frame = self.vid.getFrame()
-        if isTrue:
-            self.photo = ImageTk.PhotoImage(image = Image.fromarray(frame))
-            self.canvas.create_image(0,0,image = self.photo, anchor = "nw")
-        self.after(15,self.update)
+    def pick(self):
+        self.randomly_picked = random.choice(self.pic_list)
+        print("randomly picked.. " + self.randomly_picked)
+        self.img = ImageTk.PhotoImage(Image.open("data/"+self.randomly_picked+".jpeg"))
+        self.canvas.create_image(110,50, anchor="nw", image=self.img)
+        self.update()
         
     def show(self):
         self.lift()
 
-
-class MyVideoCapture:
-    def __init__(self, videosource=0):
-        self.vid = cv2.VideoCapture(videosource)
-        if not self.vid.isOpened():
-            raise ValueError("Unable to access camera")
-           
-        self.vid.set(cv2.CAP_PROP_FRAME_WIDTH, 360)
-        self.vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
-
-    def getFrame(self):
-        if self.vid.isOpened():
-            isTrue, frame = self.vid.read()
-
-            if isTrue:
-                return(isTrue,cv2.cvtColor(frame, cv2.cv2.COLOR_BGR2RGB))
-            else:
-                return (isTrue,None)
-        else:
-            return(isTrue,None)
-    
-    def __delattr__(self):
-        if self.vid.isOpened():
-            sefd.vid.release()
-            
 
 
 class MainView(tk.Frame):
