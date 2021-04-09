@@ -1,7 +1,17 @@
+'''
+Below are all the libraries that requires to run this GUI.
+Please make sure that you have all of these in your Anaconda Environment
+Also, especially for opencv library ("cv2"), you must have import from Spyder console by
+typing follow lines and hit enter
+
+pip install opencv-python
+
+'''
+
+
 import tkinter as tk
 import cv2
 from PIL import Image, ImageTk
-import re
 import sys
 import glob
 import os
@@ -10,9 +20,9 @@ import matplotlib.pyplot as plt
 from numpy import asarray
 from skimage.transform import resize
 from sklearn.model_selection import KFold, cross_val_score,train_test_split
-from tensorflow import keras
-from keras.models import Sequential
-from keras.models import load_model
+from sklearn.svm import SVC
+from skimage.transform import resize
+from skimage.color import rgb2grey
 
 
 
@@ -28,32 +38,28 @@ class Page1(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
         self.videosource = 0
+        self.text = tk.StringVar()
+        self.text.set("ASL Webcam Image Classification")
         self.vid = MyVideoCapture(self.videosource)
-        self.label = tk.Label(self,text="testing", font = 15, bg="black",fg="white").pack(side="top", fill="both", expand=True)
+        self.label = tk.Label(self,text="Pose your hand to camera and Click Capture button to see the result", font = 50, bg="black",fg="white").pack(side="top", fill="both", expand=True)
         self.canvas = tk.Canvas(self, width = 400, height= 400)
         self.canvas.pack() 
         self.btn_snapshot = tk.Button(self, text="Capture", width=30, bg="blue",activebackground = "red",command = self.snapshot)
+        self.result = tk.Label(self, textvariable=self.text, font = 45, bg="black",fg="white").pack(side="bottom", fill="both", expand=True)
         self.btn_snapshot.pack(anchor="center", expand=True)
         self.update()
     
     def snapshot(self):
         check,frame = self.vid.getFrame()
-        resized = []
+        resize = cv2.resize(frame, (360, 240))
+        snapped = []
         prediction = []
         if check:
-            # image = "IMG-"+ time.strftime("%H-%M-%S-%d-%m") + ".png"
             image = "image.jpeg"
-            cv2.imwrite(image, cv2.cvtColor(frame, cv2.COLOR_BGRA2RGB))
-            msg = tk.Label(self, text='Image saved', bg= 'black', fg='green').place(x=430,y=510)
-            loaded_model = load_model('model.h5')
-            print(loaded_model.summary())
-            for img in glob.glob("*.jpeg"):
-                opened = Image.open(img)
-                into_array = asarray(opened)
-                resized.append(resize(into_array, (100, 100, 3)))
-                #prediction = loaded_model.predict_classes(np.array(resized))
-                print(resized)
-                
+            cv2.imwrite(image, cv2.cvtColor(resize, cv2.COLOR_BGRA2RGB))
+            self.text.set("The image has been saved!, The prediction is...")
+        else:
+            self.text.set("Failed to take capture, please try again.")
                 
 
     def update(self):
@@ -72,9 +78,9 @@ class MyVideoCapture:
         self.vid = cv2.VideoCapture(videosource)
         if not self.vid.isOpened():
             raise ValueError("Unable to access camera")
-            
-        self.vid.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+           
+        self.vid.set(cv2.CAP_PROP_FRAME_WIDTH, 360)
+        self.vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 
     def getFrame(self):
         if self.vid.isOpened():
@@ -92,48 +98,22 @@ class MyVideoCapture:
             sefd.vid.release()
             
 
-class Page2(Page):
-   def __init__(self, *args, **kwargs):
-       Page.__init__(self, *args, **kwargs)
-       label = tk.Label(self, text="This is page 2")
-       label.pack(side="top", fill="both", expand=True)
-
-
-class Page3(Page):
-   def __init__(self, *args, **kwargs):
-       Page.__init__(self, *args, **kwargs)
-       label = tk.Label(self, text="This is page 3")
-       label.pack(side="top", fill="both", expand=True)
 
 
 class MainView(tk.Frame):
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
         p1 = Page1(self)
-        p2 = Page2(self)
-        p3 = Page3(self)
-
         buttonframe = tk.Frame(self)
         container = tk.Frame(self)
         buttonframe.pack(side="top", fill="x", expand=False)
         container.pack(side="top", fill="both", expand=True)
-
         p1.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
-        p2.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
-        p3.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
-
-        b2 = tk.Button(buttonframe, text="Home", command=p2.lift)        
-        b1 = tk.Button(buttonframe, text="Detect", command=p1.lift)    
-        b3 = tk.Button(buttonframe, text="Practice", command=p3.lift)
-
-        b2.pack(side="left")        
-        b1.pack(side="left")
-        b3.pack(side="left")
-
         p1.show()
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.title("ASL Webcam Image Classification")
     main = MainView(root)
     main.pack(side="top", fill="both", expand=True)
     root.wm_geometry("800x800")
