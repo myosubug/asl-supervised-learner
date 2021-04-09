@@ -32,11 +32,10 @@ from sklearn.model_selection import train_test_split
 
 #This is for the larger data set
 def loadData():
-    X_test = []
-    y_test = []
-    X_train = []
-    y_train = []
+    data = []
+    label =[]
 
+    '''
     print("loading test data set")
     # put "data" folder in the same location as your knn.py or svm.py or cnn.py
     # for importing testing data
@@ -54,6 +53,7 @@ def loadData():
             y_test.append(28)
         else:
             y_test.append(ord(img_name[0])-65)
+    '''
 
     print("loading train data set")
     # for importing training data
@@ -62,21 +62,89 @@ def loadData():
         opened = Image.open(img)
         into_array = asarray(opened, dtype=np.float32)
         resized = resize(into_array, (64, 64, 3))
-        X_train.append(resized)
+        data.append(resized)
         img_name = os.path.basename(img)
-        # can remove del
-        if "del" in img_name:
-            y_train.append(26)
-        elif "nothing" in img_name:
-            y_train.append(27)
-        # can remove space
-        elif "space" in img_name:
-            y_train.append(2)
+        if "nothing" in img_name:
+            label.append(26)
         else:
-            y_train.append(ord(img_name[0])-65)
+            label.append(ord(img_name[0])-65)
         counter += 1
 
+    print("Parsed images, splitting now ... ")
+    np_data = np.array(data)
+    np_label = np.array(label)
+
+    X_train, X_test, y_train, y_test = train_test_split(np_data, np_label, stratify=np_label, test_size=0.2)
+
+    X_train = np.array(X_train)
+    X_test = np.array(X_test)
+    y_train = np.array(y_train)
+    y_test = np.array(y_test)
+
+    X_train = X_train.reshape((X_train.shape[0], 64, 64, 3))
+    X_test = X_test.reshape((X_test.shape[0], 64, 64, 3))
+
+    # one-hot encode labels
+    y_train = to_categorical(y_train)
+    y_test = to_categorical(y_test)
+    
     return X_train, X_test, y_train, y_test
+
+def loadCustomData():
+    data = []
+    label =[]
+
+    print("loading custom data set")
+    for img in glob.glob("custom_data/**/*.jpeg", recursive=True):
+        opened = Image.open(img)
+        into_array = asarray(opened, dtype=np.float32)
+        resized = resize(into_array, (64, 64, 3))
+        data.append(resized)
+        img_name = os.path.basename(img)
+        letter = img_name[0]
+        if letter == 'A':
+            label.append(0)
+        elif letter == 'B':
+            label.append(1)
+        elif letter == 'C':
+            label.append(2)
+        elif letter == 'D':
+            label.append(3)
+        elif letter == 'E':
+            label.append(4)
+        elif letter == 'F':
+            label.append(5)
+        elif letter == 'G':
+            label.append(6)
+        elif letter == 'H':
+            label.append(7)
+        elif letter == 'I':
+            label.append(8)
+        else:
+            print("Incorrect label")
+        print(letter, end=", ")
+        #label.append(ord(img_name[0])-65)
+
+    print("Parsed images, splitting now ... ")
+    np_data = np.array(data)
+    np_label = np.array(label)
+
+    X_train, X_test, y_train, y_test = train_test_split(np_data, np_label, stratify=np_label, shuffle=True, random_state=10, test_size=0.2)
+
+    X_train = np.array(X_train)
+    X_test = np.array(X_test)
+    y_train = np.array(y_train)
+    y_test = np.array(y_test)
+
+    X_train = X_train.reshape((X_train.shape[0], 64, 64, 3))
+    X_test = X_test.reshape((X_test.shape[0], 64, 64, 3))
+
+    # one-hot encode labels
+    y_train = to_categorical(y_train)
+    y_test = to_categorical(y_test)
+    
+    return X_train, X_test, y_train, y_test
+    
 
 
 # Loads the no-background data set and returns X_train, X_test, y_train, y_test
@@ -134,11 +202,11 @@ def trainModel(X_train, y_train):
     model.add(Flatten())
     model.add(Dropout(0.25))
     model.add(Dense(512, activation = 'relu'))
-    model.add(Dense(26, activation = 'softmax'))
+    model.add(Dense(9, activation = 'softmax'))
     
     model.compile(optimizer = 'adam', loss = keras.losses.categorical_crossentropy, metrics = ["accuracy"])
 
-    results = model.fit(X_train, y_train, epochs=10, verbose=2)
+    results = model.fit(X_train, y_train, epochs=50, verbose=1)
 
     return model
 
@@ -148,7 +216,7 @@ def trainModel(X_train, y_train):
 def main():
     
     pathname = ""
-    train = False
+    train = True
 
     if len(sys.argv) == 1:
         pathname = "model.h5"
@@ -175,19 +243,34 @@ def main():
 
     model = Sequential()
 
-    X_train, X_test, y_train, y_test = loadData()
+    #X_train, X_test, y_train, y_test = loadCustomData()
+    
+    train = False
 
     if train:
-        model = trainModel(X_train, y_train)
-        model.save("model.h5")
+        #model = trainModel(X_train, y_train)
+        model.save("customModel50Epochs.h5")
     else:
-        model = keras.models.load_model("model.h5")
+        model = keras.models.load_model("customModel50Epochs.h5")
+        image = "image.jpeg"
+        resized = []
+        for img in glob.glob("*.jpeg"):
+            opened = Image.open(img)
+            into_array = asarray(opened)
+            resized.append(resize(into_array, (64, 64, 3)))
+            resized = np.array(resized)
+            resized = resized.reshape((resized.shape[0], 64, 64, 3))
+            # prediction = model.predict_classes(np.array(resized))
+            prediction = model.predict(np.array(resized))
+            print(prediction)
+            print(np.argmax(prediction))
+           
 
-    print(model.summary())
+    # print(model.summary())
 
     # # Evaluate on test set
-    _, accuracy = model.evaluate(X_test, y_test, verbose=0)
-    print("Accuracy on test set: {:.3f}".format(accuracy))
+    #_, accuracy = model.evaluate(X_test, y_test, verbose=0)
+    #print("Accuracy on test set: {:.3f}".format(accuracy))
 
     # # # summarize history for accuracy
     # plt.plot(results.history['accuracy'])
