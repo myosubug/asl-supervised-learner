@@ -1,4 +1,6 @@
-# Sean: gonna work on this
+# This Knn training is used to train ASL images classification
+# CPSC 599.44 ML W2021
+# Team Project
 
 from PIL import Image
 from numpy import asarray
@@ -19,6 +21,22 @@ x_test = []
 y_test = []
 x_train = []
 y_train = []
+
+'''
+this part of the code is for downsampled data set with background
+the data is in https://www.kaggle.com/grassknoted/asl-alphabet
+and you will have to unpack the zip file from the download
+and put it like below
+
+"training"
+   |
+   |-- "data"
+   |     |
+   |   "asl_alphabet_train" <-- this is folder you have downloaded
+
+also you will have to delete "del" and "space" folder from the dataset 
+so that we onyl can have 27 classes     
+'''
 
 class_lookup = collections.defaultdict(int)
 print("loading train data set")
@@ -54,20 +72,26 @@ reshaped = np_data.reshape(m_samples, -1)
 X_train, X_test, Y_train, Y_test = train_test_split(reshaped, np_label, stratify=np_label, test_size=0.25)
 print("Start training..")
 
-knn = KNeighborsClassifier(n_neighbors=9)
+knn = KNeighborsClassifier(n_neighbors=15)
 knn.fit(X_train, Y_train)
 print("KNN test set accuracy: {:.3f}".format(knn.score(X_test, Y_test)))
 
 
 
 '''
-
+#this part of code is dataset with no background
 #https://www.kaggle.com/ayuraj/asl-dataset trying dataset with no background
+
+"training"
+   |
+   |-- "data"
+   |     |
+   |   "nobg" <-- this is folder you have downloaded and you have to rename it     
 
 print("loading data set")
 # put "data" folder in the same location as your knn.py or svm.py or cnn.py
 # for importing testing data
-for img in glob.glob("data/**/*.jpeg"):
+for img in glob.glob("data/nobg/**/*.jpeg"):
     opened = Image.open(img)
     into_array = asarray(opened)
     resized = resize(into_array, (64, 64, 3))
