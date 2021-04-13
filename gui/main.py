@@ -8,22 +8,9 @@ pip install opencv-python
 
 '''
 
-
 import tkinter as tk
 import cv2
 from PIL import Image, ImageTk
-import sys
-import glob
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-from numpy import asarray
-from skimage.transform import resize
-from sklearn.model_selection import KFold, cross_val_score,train_test_split
-from sklearn.svm import SVC
-from skimage.transform import resize
-from skimage.color import rgb2grey
-
 
 
 class Page(tk.Frame):
