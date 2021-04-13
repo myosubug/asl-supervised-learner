@@ -27,6 +27,7 @@ from sklearn.svm import SVC
 from skimage.transform import resize
 from skimage.color import rgb2grey
 import random
+from tensorflow import keras
 
 
 class Page(tk.Frame):
@@ -51,12 +52,19 @@ class Page1(Page):
         self.result = tk.Label(self, textvariable=self.text, font = 45, bg="black",fg="white").pack(side="bottom", fill="both", expand=True)
         self.btn_pick.pack(anchor="center", expand=True)
         self.btn_predcit.pack(anchor="center", expand=True)
-        self.update()  
+        self.update() 
+        self.model = keras.models.load_model("modelSplitBig.h5")
     
     def predict(self):
-        snapped = []
-        prediction = []
-        self.text.set("The prediction is.....")
+        # img is image name we randomly selected
+        resized=[]
+        opened = Image.open("data/"+self.randomly_picked+".jpeg")
+        into_array = asarray(opened, dtype=np.float32)
+        resized.append(resize(into_array, (64, 64, 3)))
+        prediction = self.model.predict(np.array(resized))
+        print(np.argmax(prediction))
+        letter = np.argmax(prediction)
+        self.text.set("The prediction is " + chr(65 + letter))
 
     def pick(self):
         self.randomly_picked = random.choice(self.pic_list)
