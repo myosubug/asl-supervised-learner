@@ -1,59 +1,31 @@
 # Jashan: gonna work on this
 
-import re
-import sys
 import glob
 import os
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sn
+import pandas as pd
 from numpy import asarray
 from skimage.transform import resize
-from skimage.feature import hog
-from skimage.color import rgb2grey
-from sklearn.model_selection import KFold, cross_val_score,train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split
 from tensorflow import keras
-from keras.layers import Input
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Dropout
-from keras.layers import MaxPooling2D
 from keras.layers import MaxPool2D
 from keras.layers import BatchNormalization
 from keras.layers import Flatten
 from keras.layers import Conv2D
 from keras.utils import to_categorical
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
 
 
-#This is for the larger data set
+# Loads the full data set and returns X_train, X_test, y_train, y_test, y_test_noEncode
 def loadData():
     data = []
     label =[]
-
-    '''
-    print("loading test data set")
-    # put "data" folder in the same location as your knn.py or svm.py or cnn.py
-    # for importing testing data
-    for img in glob.glob("data/asl_alphabet_test/*.jpg"):
-        opened = Image.open(img)
-        into_array = asarray(opened, dtype=np.float32)
-        resized = resize(into_array, (64, 64, 3))
-        X_test.append(resized)
-        img_name = os.path.basename(img)
-        if "del" in img_name:
-            y_test.append(26)
-        elif "nothing" in img_name:
-            y_test.append(27)
-        elif "space" in img_name:
-            y_test.append(28)
-        else:
-            y_test.append(ord(img_name[0])-65)
-    '''
 
     print("loading train data set")
     # for importing training data
@@ -80,6 +52,7 @@ def loadData():
     X_test = np.array(X_test)
     y_train = np.array(y_train)
     y_test = np.array(y_test)
+    y_test_noEncode = y_test
 
     X_train = X_train.reshape((X_train.shape[0], 64, 64, 3))
     X_test = X_test.reshape((X_test.shape[0], 64, 64, 3))
@@ -88,8 +61,9 @@ def loadData():
     y_train = to_categorical(y_train)
     y_test = to_categorical(y_test)
     
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, y_test_noEncode
 
+# Loads the custom data set and returns X_train, X_test, y_train, y_test, y_test_noEncode
 def loadCustomData():
     data = []
     label =[]
@@ -122,7 +96,6 @@ def loadCustomData():
             label.append(8)
         else:
             print("Incorrect label")
-        print(letter, end=", ")
         #label.append(ord(img_name[0])-65)
 
     print("Parsed images, splitting now ... ")
@@ -135,6 +108,7 @@ def loadCustomData():
     X_test = np.array(X_test)
     y_train = np.array(y_train)
     y_test = np.array(y_test)
+    y_test_noEncode = y_test
 
     X_train = X_train.reshape((X_train.shape[0], 64, 64, 3))
     X_test = X_test.reshape((X_test.shape[0], 64, 64, 3))
@@ -143,14 +117,13 @@ def loadCustomData():
     y_train = to_categorical(y_train)
     y_test = to_categorical(y_test)
     
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, y_test_noEncode
     
 
 
-# Loads the no-background data set and returns X_train, X_test, y_train, y_test
+# Loads the no-background data set and returns X_train, X_test, y_train, y_test, y_test_noEncode
 def loadNoBackground():
     print("Starting Now!")
-    # This is for the smaller data set
     data = []
     label = []
 
@@ -167,12 +140,14 @@ def loadNoBackground():
     np_data = np.array(data)
     np_label = np.array(label)
 
-    X_train, X_test, y_train, y_test = train_test_split(np_data, np_label, stratify=np_label, test_size=0.25)
+    X_train, X_test, y_train, y_test = train_test_split(np_data, np_label, stratify=np_label, test_size=0.2)
 
     X_train = np.array(X_train)
     X_test = np.array(X_test)
     y_train = np.array(y_train)
+    
     y_test = np.array(y_test)
+    y_test_noEncode = y_test
 
     X_train = X_train.reshape((X_train.shape[0], 64, 64, 3))
     X_test = X_test.reshape((X_test.shape[0], 64, 64, 3))
@@ -181,9 +156,9 @@ def loadNoBackground():
     y_train = to_categorical(y_train)
     y_test = to_categorical(y_test)
 
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, y_test_noEncode
 
-# Trains the model with the no background data set
+# Trains the model
 def trainModel(X_train, y_train):
     print("Training now ...")
 
@@ -202,82 +177,49 @@ def trainModel(X_train, y_train):
     model.add(Flatten())
     model.add(Dropout(0.25))
     model.add(Dense(512, activation = 'relu'))
-    model.add(Dense(9, activation = 'softmax'))
+    model.add(Dense(27, activation = 'softmax'))
     
     model.compile(optimizer = 'adam', loss = keras.losses.categorical_crossentropy, metrics = ["accuracy"])
 
     results = model.fit(X_train, y_train, epochs=50, verbose=1)
 
-    return model
+    return model, results
 
-# Usage:
-#   python cnn.py mode pathname
-#   where mode = "save" or "load" and pathname is the pathname to the model to save to / load from
 def main():
     
-    pathname = ""
-    train = True
-
-    if len(sys.argv) == 1:
-        pathname = "model.h5"
-        train = True
-    
-    if len(sys.argv) == 2:
-        pathname = "model"
-        if(sys.argv[1]) == "save":
-            train = True
-        elif(sys.argv[1]) == "load":
-            train = False
-        else:
-            print("Invalid mode, default to save")
-    
-    if len(sys.argv) == 3:
-        pathname = sys.argv[2]
-        if(sys.argv[1]) == "save":
-            train = True
-        elif(sys.argv[1]) == "load":
-            train = False
-        else:
-            print("Invalid mode, default to save")
-            train = True
-
     model = Sequential()
 
-    #X_train, X_test, y_train, y_test = loadCustomData()
+    # X_train, X_test, y_train, y_test, y_test_noEncode = loadCustomData() # set nodes in last layer to 9
+    # X_train, X_test, y_train, y_test, y_test_noEncode = loadNoBackground() # set nodes in last layer to 26
+    X_train, X_test, y_train, y_test, y_test_noEncode = loadData() # set nodes in last layer to 27
+
+    model, results = trainModel(X_train, y_train)
+    model.save("model.h5")
     
-    train = False
+    # model = keras.models.load_model("model.h5")
+        
+    print(model.summary())
 
-    if train:
-        #model = trainModel(X_train, y_train)
-        model.save("customModel50Epochs.h5")
-    else:
-        model = keras.models.load_model("customModel50Epochs.h5")
-        image = "image.jpeg"
-        resized = []
-        for img in glob.glob("*.jpeg"):
-            opened = Image.open(img)
-            into_array = asarray(opened)
-            resized.append(resize(into_array, (64, 64, 3)))
-            resized = np.array(resized)
-            resized = resized.reshape((resized.shape[0], 64, 64, 3))
-            # prediction = model.predict_classes(np.array(resized))
-            prediction = model.predict(np.array(resized))
-            print(prediction)
-            print(np.argmax(prediction))
-           
+    # Evaluate on test set
+    _, accuracy = model.evaluate(X_test, y_test, verbose=0)
+    y_pred = model.predict(X_test)
+    print("Accuracy on test set: {:.3f}".format(accuracy))
 
-    # print(model.summary())
+    # summarize history for accuracy
+    plt.plot(results.history['accuracy'])
+    plt.title('model accuracy: full set')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['training set'])
+    plt.show()
+    
+    # confusion matrix
+    matrix = confusion_matrix(y_test_noEncode, y_pred.argmax(axis=1))
+    # Adjust index and columns to appropriate values if using CustomData or NoBackground
+    df_cm = pd.DataFrame(matrix, index = [i for i in "ABCDEFGHIJKLMNOPQRSTUVWXYZ "], columns = [i for i in "ABCDEFGHIJKLMNOPQRSTUVWXYZ "])
+    sn.set(font_scale=.5)
+    sn.heatmap(df_cm, annot=True, cmap="Blues", annot_kws={"size": 8}) # font size
 
-    # # Evaluate on test set
-    #_, accuracy = model.evaluate(X_test, y_test, verbose=0)
-    #print("Accuracy on test set: {:.3f}".format(accuracy))
-
-    # # # summarize history for accuracy
-    # plt.plot(results.history['accuracy'])
-    # plt.title('model accuracy')
-    # plt.ylabel('accuracy')
-    # plt.xlabel('epoch')
-    # plt.legend(['training set'])
-    # plt.show()
+    plt.show()
 
 main()
