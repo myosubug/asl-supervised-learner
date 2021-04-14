@@ -33,7 +33,25 @@ y_train = []
 print("loading test data set")
 # put "data" folder in the same location as your knn.py or svm.py or cnn.py
 # for importing testing data
-for img in glob.glob("data/custom_data/**/*.jpeg", recursive=True):
+
+'''
+this part of the code is for downsampled data set with background
+the data is in https://www.kaggle.com/grassknoted/asl-alphabet
+and you will have to unpack the zip file from the download
+and put it like below
+
+"training"
+   |
+   |-- "data"
+   |     |
+   |   "asl_alphabet_train" <-- this is folder you have downloaded
+
+also you will have to delete "del" and "space" folder from the dataset 
+so that we onyl can have 27 classes     
+'''
+
+
+for img in glob.glob("data/asl_alphabet_train/**/*.jpeg", recursive=True):
     opened = Image.open(img)
     into_array = asarray(opened, dtype=np.float32)
     resized = resize(into_array, (64, 64, 3))

@@ -87,7 +87,10 @@ print("KNN test set accuracy: {:.3f}".format(knn.score(X_test, Y_test)))
    |-- "data"
    |     |
    |   "nobg" <-- this is folder you have downloaded and you have to rename it     
-
+also you will have to delete "del" and "space" folder from the dataset 
+so that we onyl can have 27 classes 
+'''
+'''
 print("loading data set")
 # put "data" folder in the same location as your knn.py or svm.py or cnn.py
 # for importing testing data
